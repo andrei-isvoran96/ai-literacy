@@ -1,0 +1,18 @@
+---
+// Overrides <h2> in lessons to add a hover anchor link to the section.
+const { id } = Astro.props;
+---
+<h2 id={id} class="group flex items-center">
+  <slot />
+  {
+    id && (
+      <a
+        href={`#${id}`}
+        class="ml-2 font-mono text-accent opacity-0 transition group-hover:opacity-100 focus:opacity-100"
+        aria-label="Link to this section"
+      >
+        #
+      </a>
+    )
+  }
+</h2>

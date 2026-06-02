@@ -1,0 +1,111 @@
+---
+title: Context Engineering
+description: The context window is the scarcest resource in any agent. Learn what fills it, what it costs, and how real agents survive long tasks.
+order: 1
+slug: context-engineering
+difficulty: intermediate
+tags: [context, memory, retrieval]
+---
+
+import ContextWindowMeter from '../../components/islands/ContextWindowMeter.tsx';
+
+Prompt engineering was about wording a single request. **Context engineering** is about
+deciding what the model can _see_ at the moment it has to act — and everything it can see
+competes for the same finite budget. For anyone building agents, this is the skill that
+separates a demo from something that survives a real, multi-step task.
+
+The model is stateless. Every turn, you hand it a fresh window of tokens and it responds
+to exactly what's inside. There is no hidden memory. So the real engineering question is
+never "what's the best prompt?" — it's **"what belongs in the window right now, and what
+has to go?"**
+
+## The window is a budget, not a bucket
+
+A context window has a hard token limit. It's tempting to treat it as a bucket you keep
+pouring into, but it behaves like a budget with competing line items. Every tool schema,
+every retrieved document, every past turn you keep is spending that you can't spend
+elsewhere — and you must reserve room for the model's _output_, or it has nowhere to write
+the answer.
+
+Drag the sliders below until the request overflows the budget line, then watch what each
+recovery policy does:
+
+<ContextWindowMeter client:visible caption="Push 'Conversation history' up until it crosses the budget line, then compare Compact vs Truncate vs Off." />
+
+Two things usually surprise people the first time:
+
+- **Output space is not free.** If you fill the whole window with input, the model can't
+  answer. Always reserve an output budget.
+- **History is the line item that grows.** System prompt and tools are roughly fixed.
+  Conversation history grows every single turn — it's the first thing to blow the budget
+  on a long task.
+
+## What's actually in the window
+
+For a typical agent turn, the window is roughly:
+
+```text
+┌─────────────────────────────────────────────┐
+│ system prompt      instructions & persona    │  ~fixed
+│ tool definitions   JSON schemas per tool     │  ~fixed
+│ conversation       every prior turn          │  grows
+│ retrieved docs     RAG / memory injections   │  varies
+│ ── reserved ───────────────────────────────  │
+│ output budget      room for the reply        │  reserved
+└─────────────────────────────────────────────┘
+```
+
+<Callout type="tip">
+Tool definitions are easy to forget. Twenty tools with verbose JSON schemas can eat tens
+of thousands of tokens before the user has said a word. Trim the toolset to what the agent
+actually needs for the task.
+</Callout>
+
+## Three strategies for a window that won't fit
+
+When the task is bigger than the window — and real tasks always are — you need a policy for
+what stays.
+
+### 1. Retrieval: pull in only what's relevant
+
+Don't pre-load everything. Keep knowledge _outside_ the window (a vector store, a database,
+files) and retrieve just the chunks relevant to the current step. The window holds a working
+set, not the whole world.
+
+```ts
+// Retrieve a small, relevant working set instead of dumping everything in.
+const hits = await store.search(userQuery, { topK: 4 });
+const context = hits.map((h) => h.text).join('\n\n');
+```
+
+### 2. Compaction: summarize the old to keep the gist
+
+When history gets long, replace a span of old turns with a short summary. It's lossy — you
+trade detail for room — but it lets a conversation run far past the raw token limit while
+keeping continuity.
+
+### 3. Eviction: drop what you can afford to lose
+
+The bluntest tool: when you're over budget, throw away the oldest or least-relevant tokens.
+Cheap and simple, but anything you evict is gone — the agent can't reason about what it can
+no longer see.
+
+<Callout type="warn" title="Silent failure">
+The worst overflow policy is no policy. When you exceed the limit with no handling, requests
+either error out or — worse — silently drop context, and the agent starts making confident
+decisions on half the picture. Choose a strategy explicitly.
+</Callout>
+
+## Rules of thumb
+
+- **Measure before you optimize.** Count tokens per line item. You can't budget what you
+  don't measure.
+- **Treat the system prompt as expensive.** Every token there is paid on _every_ call.
+- **Prefer retrieval over stuffing.** A focused working set beats a giant dump almost every
+  time — both for cost and for accuracy.
+- **Compact proactively, not at the cliff.** Summarize history on a schedule, before you're
+  forced to by an overflow.
+
+Context engineering is the foundation the next two lessons build on. Once you're deliberate
+about _what the agent knows_, the next question is _what it can do_ — which means tools and
+the agent loop.

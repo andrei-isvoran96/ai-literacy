@@ -1,0 +1,293 @@
+@import "tailwindcss";
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/jetbrains-mono";
+
+/* ── "Eclipse" design tokens ─────────────────────────────────────────────
+   Each --color-* / --font-* / --radius-* / --shadow-* / --text-* token
+   auto-generates Tailwind utilities (bg-surface, text-fg-muted, font-mono,
+   rounded-lg, shadow-glow-cyan, text-hero, …). */
+@theme {
+  --color-bg: #0a0c10;
+  --color-surface: #0f131a;
+  --color-surface-2: #161b24;
+  --color-surface-3: #1d242f;
+
+  --color-border: #222a36;
+  --color-border-strong: #303a49;
+
+  --color-fg: #e6edf3;
+  --color-fg-muted: #9aa7b6;
+  --color-fg-subtle: #5c6b7a;
+
+  --color-accent: #38e1c8;
+  --color-accent-hi: #5cf0da;
+  --color-accent-dim: #1aa896;
+  --color-violet: #a78bfa;
+  --color-violet-dim: #7c5cf0;
+
+  --color-success: #4ade80;
+  --color-warn: #fbbf24;
+  --color-danger: #f87171;
+  --color-info: #60a5fa;
+
+  --color-info-bg: #0f1822;
+  --color-success-bg: #0d1a14;
+  --color-warn-bg: #1c1709;
+  --color-danger-bg: #1c1011;
+
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 16px;
+
+  --text-hero: clamp(2.5rem, 6vw, 4.5rem);
+
+  --shadow-card: 0 1px 0 0 rgb(255 255 255 / 0.02) inset, 0 8px 24px -12px rgb(0 0 0 / 0.6);
+  --shadow-glow-cyan: 0 0 0 1px rgb(56 225 200 / 0.35), 0 0 24px -4px rgb(56 225 200 / 0.45);
+  --shadow-glow-violet: 0 0 0 1px rgb(124 92 240 / 0.35), 0 0 28px -4px rgb(124 92 240 / 0.45);
+}
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    /* faint dot-grid terminal motif */
+    background-image: radial-gradient(circle at 1px 1px, rgb(255 255 255 / 0.035) 1px, transparent 0);
+    background-size: 32px 32px;
+    background-attachment: fixed;
+  }
+
+  ::selection {
+    background: rgb(56 225 200 / 0.25);
+    color: var(--color-fg);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  /* dark scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border-strong) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: var(--color-border-strong);
+    border-radius: 9999px;
+    border: 2px solid var(--color-bg);
+  }
+
+  a {
+    color: inherit;
+  }
+}
+
+/* ── Reusable visual helpers ─────────────────────────────────────────── */
+@utility text-gradient {
+  background-image: linear-gradient(135deg, var(--color-accent), var(--color-violet-dim));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@utility eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
+/* soft cyan→violet glow blob for hero backdrops */
+@utility aurora {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 9999px;
+  background: radial-gradient(closest-side, rgb(56 225 200 / 0.30), transparent 70%),
+              radial-gradient(closest-side, rgb(124 92 240 / 0.28), transparent 70%);
+  filter: blur(80px);
+  opacity: 0.7;
+}
+
+/* ── Prose: styles applied to rendered MDX inside .prose ─────────────────
+   Kept global so MDX descendants are reachable without :global() gymnastics. */
+@layer base {
+  .prose {
+    font-size: 1.0625rem;
+    line-height: 1.75;
+    color: var(--color-fg);
+  }
+  .prose > * + * {
+    margin-top: 1.25em;
+  }
+  .prose h2,
+  .prose h3 {
+    scroll-margin-top: 6rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+  }
+  .prose h2 {
+    margin-top: 2.5em;
+    margin-bottom: 0.25em;
+    font-size: 1.6rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .prose h3 {
+    margin-top: 1.8em;
+    margin-bottom: 0.25em;
+    font-size: 1.25rem;
+    color: var(--color-fg);
+  }
+  .prose p,
+  .prose ul,
+  .prose ol {
+    color: var(--color-fg-muted);
+  }
+  .prose strong {
+    color: var(--color-fg);
+    font-weight: 650;
+  }
+  .prose a {
+    color: var(--color-accent);
+    text-decoration: none;
+    border-bottom: 1px solid rgb(56 225 200 / 0.3);
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .prose a:hover {
+    color: var(--color-accent-hi);
+    border-bottom-color: var(--color-accent);
+  }
+  .prose ul,
+  .prose ol {
+    padding-left: 1.4em;
+  }
+  .prose ul {
+    list-style: none;
+  }
+  .prose ul > li {
+    position: relative;
+  }
+  .prose ul > li::before {
+    content: "";
+    position: absolute;
+    left: -1.1em;
+    top: 0.72em;
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    background: var(--color-accent-dim);
+  }
+  .prose ol {
+    list-style: decimal;
+  }
+  .prose li + li {
+    margin-top: 0.4em;
+  }
+  .prose li::marker {
+    color: var(--color-fg-subtle);
+  }
+  /* inline code (not inside <pre>) */
+  .prose :not(pre) > code {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+    background: var(--color-surface-2);
+    color: var(--color-accent-hi);
+    border: 1px solid var(--color-border);
+    padding: 0.12em 0.4em;
+    border-radius: var(--radius-sm);
+  }
+  .prose blockquote {
+    border-left: 3px solid var(--color-violet-dim);
+    padding-left: 1rem;
+    color: var(--color-fg-muted);
+    font-style: italic;
+  }
+  .prose hr {
+    border: none;
+    border-top: 1px solid var(--color-border);
+    margin: 2.5em 0;
+  }
+  .prose table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95em;
+  }
+  .prose th,
+  .prose td {
+    border: 1px solid var(--color-border);
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+  }
+  .prose th {
+    background: var(--color-surface-2);
+    color: var(--color-fg);
+    font-weight: 600;
+  }
+  .prose td {
+    color: var(--color-fg-muted);
+  }
+}
+
+/* ── Island animation keyframes ──────────────────────────────────────── */
+@keyframes flow-dash {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+@keyframes soft-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Respect reduced-motion globally for decorative motion. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  /* Backstop: neutralize decorative CSS animations/transitions.
+     Islands also gate autoplay via the useReducedMotion hook. */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

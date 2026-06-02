@@ -1,0 +1,50 @@
+---
+interface Props {
+  type?: 'note' | 'tip' | 'warn' | 'danger';
+  title?: string;
+}
+const { type = 'note', title } = Astro.props;
+
+const styles = {
+  note: { bg: 'bg-info-bg', border: 'border-info', text: 'text-info', label: 'Note' },
+  tip: { bg: 'bg-success-bg', border: 'border-success', text: 'text-success', label: 'Tip' },
+  warn: { bg: 'bg-warn-bg', border: 'border-warn', text: 'text-warn', label: 'Warning' },
+  danger: { bg: 'bg-danger-bg', border: 'border-danger', text: 'text-danger', label: 'Caution' },
+} as const;
+const s = styles[type];
+---
+<aside
+  class:list={[
+    'my-6 rounded-r-lg border-l-4 p-4 pl-5',
+    s.bg,
+    s.border,
+  ]}
+  role="note"
+>
+  <p class:list={['mb-2 flex items-center gap-2 font-mono text-xs font-semibold uppercase tracking-wider', s.text]}>
+    {
+      type === 'note' && (
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 16v-4M12 8h.01" /></svg>
+      )
+    }
+    {
+      type === 'tip' && (
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.3 1 2.5h6c0-1.2.3-1.8 1-2.5A6 6 0 0 0 12 3Z" /></svg>
+      )
+    }
+    {
+      type === 'warn' && (
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" /></svg>
+      )
+    }
+    {
+      type === 'danger' && (
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M15 9l-6 6M9 9l6 6" /></svg>
+      )
+    }
+    {title ?? s.label}
+  </p>
+  <div class="callout-body text-sm text-fg-muted [&>*+*]:mt-2">
+    <slot />
+  </div>
+</aside>

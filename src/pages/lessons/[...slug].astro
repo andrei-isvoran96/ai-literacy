@@ -1,0 +1,37 @@
+---
+import { render } from 'astro:content';
+import LessonLayout from '../../layouts/LessonLayout.astro';
+import { getSortedLessons, readingMinutes } from '../../lib/lessons';
+import Heading2 from '../../components/mdx/Heading2.astro';
+import CodeBlock from '../../components/mdx/CodeBlock.astro';
+import Callout from '../../components/mdx/Callout.astro';
+
+// Available to every lesson: <Callout> needs no import, and h2/code blocks
+// get section anchors + a copy button automatically.
+const mdxComponents = { h2: Heading2, pre: CodeBlock, Callout };
+
+export async function getStaticPaths() {
+  const lessons = await getSortedLessons();
+  return lessons.map((lesson, index) => ({
+    params: { slug: lesson.data.slug ?? lesson.id },
+    props: {
+      lesson,
+      prev: lessons[index - 1] ?? null,
+      next: lessons[index + 1] ?? null,
+    },
+  }));
+}
+
+const { lesson, prev, next } = Astro.props;
+const { Content, headings } = await render(lesson);
+const minutes = readingMinutes(lesson);
+---
+<LessonLayout
+  lesson={lesson}
+  headings={headings}
+  prev={prev}
+  next={next}
+  minutes={minutes}
+>
+  <Content components={mdxComponents} />
+</LessonLayout>

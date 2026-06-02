@@ -1,0 +1,148 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Container from '../components/Container.astro';
+import Button from '../components/Button.astro';
+import LessonCard from '../components/LessonCard.astro';
+import AgentLoopVisualizer from '../components/islands/AgentLoopVisualizer.tsx';
+import { getSortedLessons, lessonHref, withBase } from '../lib/lessons';
+
+const lessons = await getSortedLessons();
+const first = lessons[0];
+
+const pillars = [
+  { k: 'Context', d: 'What the agent knows — and the budget it competes for.' },
+  { k: 'Tools', d: 'What the agent does — the model→tool→observe loop.' },
+  { k: 'Verification', d: 'How you know it actually worked.' },
+];
+---
+<BaseLayout>
+  {/* ── Hero ───────────────────────────────────────────────── */}
+  <section class="relative overflow-hidden">
+    <div class="aurora left-1/2 top-[-6rem] h-[28rem] w-[44rem] -translate-x-1/2"></div>
+    <Container class="relative">
+      <div class="grid items-center gap-12 py-20 lg:grid-cols-[1.05fr_0.95fr] lg:py-28">
+        <div>
+          <p class="eyebrow">Agentic engineering · field guide</p>
+          <h1 class="mt-5 text-hero font-semibold leading-[1.05] tracking-tight">
+            Learn how AI agents <span class="text-gradient">actually work</span>.
+          </h1>
+          <p class="mt-6 max-w-xl text-lg text-fg-muted">
+            A hands-on guide for developers: context, tools, and verification — the
+            three skills behind agents you can trust. Every lesson ends with something
+            you can poke at.
+          </p>
+          <div class="mt-8 flex flex-wrap gap-3">
+            {first && <Button href={lessonHref(first)}>Start learning →</Button>}
+            <Button href={withBase('/lessons')} variant="ghost">Browse lessons</Button>
+          </div>
+
+          <ul class="mt-10 flex flex-wrap gap-x-6 gap-y-2 text-sm text-fg-subtle">
+            {
+              pillars.map((p) => (
+                <li class="flex items-center gap-2">
+                  <span class="h-1.5 w-1.5 rounded-full bg-accent"></span>
+                  <span class="text-fg-muted">{p.k}</span>
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+
+        {/* decorative terminal trace */}
+        <div class="rounded-xl border border-border bg-surface/80 shadow-card backdrop-blur">
+          <div class="flex items-center gap-1.5 border-b border-border px-4 py-3">
+            <span class="h-3 w-3 rounded-full bg-danger/70"></span>
+            <span class="h-3 w-3 rounded-full bg-warn/70"></span>
+            <span class="h-3 w-3 rounded-full bg-success/70"></span>
+            <span class="ml-3 font-mono text-xs text-fg-subtle">agent.run</span>
+          </div>
+          <pre class="overflow-x-auto p-4 font-mono text-[0.8rem] leading-relaxed"><code><span class="text-fg-subtle">$</span> <span class="text-fg">agent.run(</span><span class="text-accent">"ship the feature"</span><span class="text-fg">)</span>
+<span class="text-fg-subtle">  ├─</span> <span class="text-violet">think</span>    plan the work
+<span class="text-fg-subtle">  ├─</span> <span class="text-info">tool</span>     write_file(<span class="text-accent">"page.tsx"</span>)
+<span class="text-fg-subtle">  ├─</span> <span class="text-success">observe</span>  tests: 12 passed
+<span class="text-fg-subtle">  ├─</span> <span class="text-violet">think</span>    looks done — verify
+<span class="text-fg-subtle">  ├─</span> <span class="text-info">tool</span>     open_browser(<span class="text-accent">"/"</span>)
+<span class="text-fg-subtle">  └─</span> <span class="text-accent">done</span>     ✓ shipped &amp; verified</code></pre>
+        </div>
+      </div>
+    </Container>
+  </section>
+
+  {/* ── What is agentic engineering ─────────────────────────── */}
+  <section class="border-t border-border bg-surface/30">
+    <Container class="py-20">
+      <div class="grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:gap-16">
+        <div>
+          <p class="eyebrow">The core loop</p>
+          <h2 class="mt-4 text-3xl font-semibold tracking-tight">
+            What is agentic engineering?
+          </h2>
+          <p class="mt-4 text-fg-muted">
+            It's the craft of building software where a model doesn't just answer — it
+            <em>acts</em>. It reasons, calls tools, observes the results, and loops until
+            the job is done.
+          </p>
+          <p class="mt-4 text-fg-muted">
+            Getting that loop to be reliable is a real engineering discipline. Step through
+            it on the right, then start the track to go deep.
+          </p>
+        </div>
+        <AgentLoopVisualizer
+          client:visible
+          caption="Step or play the loop — this is the same widget you'll meet in lesson 2."
+        />
+      </div>
+    </Container>
+  </section>
+
+  {/* ── Lessons ─────────────────────────────────────────────── */}
+  <section>
+    <Container class="py-20">
+      <div class="flex items-end justify-between">
+        <div>
+          <p class="eyebrow">The track</p>
+          <h2 class="mt-4 text-3xl font-semibold tracking-tight">Start here</h2>
+        </div>
+        <a
+          href={withBase('/lessons')}
+          class="hidden text-sm text-fg-muted transition hover:text-accent sm:block"
+          >All lessons →</a
+        >
+      </div>
+
+      <ul class="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {
+          lessons.map((lesson) => (
+            <li class="contents">
+              <LessonCard lesson={lesson} />
+            </li>
+          ))
+        }
+      </ul>
+    </Container>
+  </section>
+
+  {/* ── Closing CTA ─────────────────────────────────────────── */}
+  <section class="border-t border-border">
+    <Container class="py-20">
+      <div class="relative overflow-hidden rounded-2xl border border-border bg-surface p-10 text-center shadow-card">
+        <div class="aurora left-1/2 top-1/2 h-72 w-[36rem] -translate-x-1/2 -translate-y-1/2 opacity-40"></div>
+        <div class="relative">
+          <h2 class="text-3xl font-semibold tracking-tight">
+            Ready to build agents you can trust?
+          </h2>
+          <p class="mx-auto mt-3 max-w-md text-fg-muted">
+            Three focused lessons. Real code, interactive widgets, no fluff.
+          </p>
+          {
+            first && (
+              <Button href={lessonHref(first)} class="mt-7">
+                Start with {first.data.title} →
+              </Button>
+            )
+          }
+        </div>
+      </div>
+    </Container>
+  </section>
+</BaseLayout>

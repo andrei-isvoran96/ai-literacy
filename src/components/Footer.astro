@@ -1,0 +1,21 @@
+---
+import Container from './Container.astro';
+const year = 2026;
+---
+<footer class="mt-24 border-t border-border py-10 text-sm text-fg-subtle">
+  <Container size="wide">
+    <div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+      <p>
+        <span class="font-mono text-accent">&gt;_</span>
+        AI Literacy &mdash; agentic engineering, explained for builders.
+      </p>
+      <p class="text-fg-subtle">
+        © {year} · Built with <a
+          href="https://astro.build"
+          class="text-fg-muted underline-offset-2 hover:text-accent hover:underline"
+          >Astro</a
+        >
+      </p>
+    </div>
+  </Container>
+</footer>

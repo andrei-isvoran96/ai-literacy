@@ -1,0 +1,45 @@
+---
+import {
+  lessonHref,
+  lessonNumber,
+  readingMinutes,
+  type Lesson,
+} from '../lib/lessons';
+import Badge from './Badge.astro';
+
+interface Props {
+  lesson: Lesson;
+}
+const { lesson } = Astro.props;
+const href = lessonHref(lesson);
+const minutes = readingMinutes(lesson);
+const tags = lesson.data.tags.slice(0, 3);
+---
+<a
+  href={href}
+  class="group relative flex h-full flex-col rounded-lg border border-border bg-surface p-6 shadow-card transition duration-200 hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-glow-cyan"
+>
+  <div class="flex items-center justify-between">
+    <span class="font-mono text-2xl font-semibold text-fg-subtle transition group-hover:text-accent">
+      {lessonNumber(lesson)}
+    </span>
+    <Badge variant="difficulty" difficulty={lesson.data.difficulty} />
+  </div>
+
+  <h3 class="mt-4 text-lg font-semibold tracking-tight transition group-hover:text-accent">
+    {lesson.data.title}
+  </h3>
+  <p class="mt-2 line-clamp-3 text-sm text-fg-muted">{lesson.data.description}</p>
+
+  <div class="mt-auto flex items-center gap-2 pt-5 text-xs text-fg-subtle">
+    <span>{minutes} min read</span>
+    {
+      tags.length > 0 && (
+        <>
+          <span aria-hidden="true">·</span>
+          <span class="truncate font-mono">{tags.map((t) => `#${t}`).join(' ')}</span>
+        </>
+      )
+    }
+  </div>
+</a>

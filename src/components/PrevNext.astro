@@ -1,0 +1,44 @@
+---
+import { lessonHref, lessonNumber, type Lesson } from '../lib/lessons';
+
+interface Props {
+  prev: Lesson | null;
+  next: Lesson | null;
+}
+const { prev, next } = Astro.props;
+---
+<nav
+  class="mt-16 grid gap-4 border-t border-border pt-8 sm:grid-cols-2"
+  aria-label="Lesson navigation"
+>
+  {
+    prev ? (
+      <a
+        href={lessonHref(prev)}
+        class="group rounded-lg border border-border bg-surface p-4 transition hover:border-accent/40 hover:bg-surface-2"
+      >
+        <span class="font-mono text-xs text-fg-subtle">← Lesson {lessonNumber(prev)}</span>
+        <span class="mt-1 block font-medium text-fg group-hover:text-accent">
+          {prev.data.title}
+        </span>
+      </a>
+    ) : (
+      <div class="hidden sm:block" />
+    )
+  }
+  {
+    next ? (
+      <a
+        href={lessonHref(next)}
+        class="group rounded-lg border border-border bg-surface p-4 text-right transition hover:border-accent/40 hover:bg-surface-2"
+      >
+        <span class="font-mono text-xs text-fg-subtle">Lesson {lessonNumber(next)} →</span>
+        <span class="mt-1 block font-medium text-fg group-hover:text-accent">
+          {next.data.title}
+        </span>
+      </a>
+    ) : (
+      <div class="hidden sm:block" />
+    )
+  }
+</nav>

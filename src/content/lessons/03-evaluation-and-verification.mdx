@@ -1,0 +1,107 @@
+---
+title: Evaluation & Verification
+description: An agent that looks like it works and an agent that works are different things. Learn to write evals, assertions, and judges that earn your trust in a green run.
+order: 3
+slug: evaluation-and-verification
+difficulty: advanced
+tags: [evals, testing, verification]
+---
+
+import EvalScorer from '../../components/islands/EvalScorer.tsx';
+
+The most expensive mistake in agentic engineering is trusting output because it _looks_
+right. A confident paragraph and a correct one are indistinguishable at a glance — and the
+glance is exactly what fails you. This lesson is about replacing the glance with something
+you can run.
+
+## "Looks done" is not "done"
+
+Here are two agent outputs for the same task. Both look reasonable. One is production-ready;
+one is quietly broken. Toggle between them and watch the same suite of checks reach different
+verdicts:
+
+<EvalScorer client:visible caption="Same checks, two outputs. The eval is what tells them apart — your eyes don't." />
+
+Output B parses as JSON and reads fine. It also has the order id in the wrong format, a total
+that's a string instead of a number, and no currency at all — three bugs that a downstream
+system would choke on, and that no amount of staring would reliably catch. The eval catches
+all three in milliseconds, every time.
+
+<Callout type="note">
+An **eval** is just a test for non-deterministic output. The same instinct that makes you
+write unit tests for code applies here — you just need check types that tolerate the fact
+that the output isn't byte-for-byte fixed.
+</Callout>
+
+## Three kinds of checks
+
+You'll reach for different tools depending on how verifiable the output is.
+
+### 1. Assertions — exact, cheap, ruthless
+
+When the output has structure, assert on it directly. These are fast, deterministic, and
+free to run on every change.
+
+```ts
+const data = JSON.parse(output);
+assert(/^A-\d+$/.test(data.orderId), 'orderId must look like A-1234');
+assert(typeof data.total === 'number', 'total must be numeric');
+assert('currency' in data, 'currency is required');
+```
+
+### 2. LLM-as-judge — for what you can't assert
+
+Some qualities resist a regex: is the tone right? Is the summary faithful to the source? Did
+the answer actually address the question? Here you use a second model as a grader, with a
+rubric.
+
+```ts
+const verdict = await judge({
+  rubric: 'Is the answer faithful to the source and free of invented facts? yes/no + reason.',
+  input: sourceDoc,
+  output: answer,
+});
+```
+
+<Callout type="warn" title="Judges are fallible too">
+An LLM judge is itself a non-deterministic system. Keep rubrics narrow and binary, give it
+the source material, and spot-check the judge against human labels. A vague judge ("is this
+good?") is worse than no judge.
+</Callout>
+
+### 3. Ground truth — when you have the answer
+
+For tasks with a known correct output (a labeled dataset, a golden file), compare directly.
+This is the strongest signal and the basis of any serious eval set: a fixed collection of
+inputs paired with expected outputs that you re-run on every change.
+
+## Verify the work, not the symptom
+
+Evals catch regressions in bulk, but the highest-value habit is per-task verification:
+**actually perform the task the agent claims to have done.** If the agent says it fixed a
+bug, run the failing case. If it says the API returns 200, send the request. If it built a
+page, open the page and look at it.
+
+<Callout type="tip">
+The cheap check (the route registered, the JSON parsed, the test file exists) and the real
+check (the feature works for a user) often disagree. When they do, the real check wins —
+always. A green unit test never proves a broken layout is fine.
+</Callout>
+
+## Build the habit into the loop
+
+Verification isn't a phase at the end — it's part of the agent loop itself. The strongest
+agents treat their own output as a hypothesis:
+
+- **Reproduce before you trust.** Run the actual input, hit the actual endpoint, query the
+  real data. A symptom is a starting point, not a conclusion.
+- **Make checks runnable, not aspirational.** "I believe this works" is not a check. A script
+  that exits non-zero is.
+- **Grow an eval set over time.** Every bug you find becomes a new case in the suite, so it
+  can never silently come back.
+- **Gate on the suite.** If the evals don't pass, the work isn't done — no matter how good it
+  looks.
+
+That's the loop closed: an agent that **knows** the right things ([context](/lessons/context-engineering)),
+**does** the right things ([tools and the loop](/lessons/tool-use-and-the-agent-loop)), and
+can **prove** it did them. The proving is what makes the other two trustworthy.

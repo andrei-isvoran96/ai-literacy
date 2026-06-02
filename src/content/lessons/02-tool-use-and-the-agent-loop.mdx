@@ -1,0 +1,113 @@
+---
+title: Tool Use & the Agent Loop
+description: A model that can call tools stops being a text predictor and becomes an agent. Learn the model→tool→observe loop and how to design tools agents actually use well.
+order: 2
+slug: tool-use-and-the-agent-loop
+difficulty: intermediate
+tags: [tools, function-calling, agent-loop]
+---
+
+import AgentLoopVisualizer from '../../components/islands/AgentLoopVisualizer.tsx';
+import PromptPlayground from '../../components/islands/PromptPlayground.tsx';
+
+A language model on its own can only produce text. The moment you give it **tools** —
+functions it can ask to run — it can check the weather, query a database, search the web,
+or edit a file. That single capability is what turns a chatbot into an _agent_: something
+that takes actions in the world and reacts to the results.
+
+## The loop is the whole idea
+
+Agents don't answer in one shot. They run a loop: the model decides whether to act, a tool
+runs, the result comes back, and the model looks again. It repeats until it has what it needs.
+
+<AgentLoopVisualizer client:visible caption="Step through it: the model decides to act, observes the result, and loops back until it can answer." />
+
+The loop has four moves:
+
+1. **Model** — reasons about the goal and decides: answer now, or call a tool?
+2. **Tool call** — it emits a structured request: a tool name plus arguments.
+3. **Observation** — your code runs the tool and feeds the result back in.
+4. **Repeat** — the model reconsiders with the new information, and either loops again or
+   produces a final answer.
+
+The "repeat" is the part people underestimate. A single tool call is easy; the power comes
+from the model _observing a result and deciding what to do next_ — calling another tool,
+correcting course, or stopping.
+
+## Anatomy of a tool call
+
+A tool is just a function plus a schema that tells the model how to call it. The schema is
+part of the context window (remember the [budget](/lessons/context-engineering)), so keep it
+tight.
+
+```ts
+const getWeather = {
+  name: 'get_weather',
+  description: 'Get the current weather for a city.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      city: { type: 'string', description: 'City name, e.g. "Tokyo"' },
+      units: { type: 'string', enum: ['metric', 'imperial'] },
+    },
+    required: ['city'],
+  },
+};
+```
+
+When the model wants to act, it doesn't run anything — it returns a structured request like
+`get_weather({ city: "Tokyo", units: "metric" })`. **Your code executes the function** and
+returns the result as the next observation. The model never touches your systems directly;
+it only ever asks.
+
+<Callout type="note">
+This indirection is also your safety boundary. The model proposes a call; your code decides
+whether to allow it, validate the arguments, and what to do with the result. Tools are where
+you enforce permissions.
+</Callout>
+
+## Watch one full cycle
+
+Here's the same loop as a running transcript. Press **Run** and watch the agent decide to
+call a tool, read the result, and only then answer — entirely scripted and offline, so it's
+deterministic every time:
+
+<PromptPlayground client:visible caption="No API key, no network — a scripted agent so the mechanics are always identical." />
+
+Notice the order: the model **stops to call a tool** instead of guessing, waits for the
+**observation**, and then answers from real data. That discipline — act, observe, then
+commit — is exactly what makes agents more reliable than a single prediction.
+
+## Designing tools agents use well
+
+The model can only use a tool as well as you describe it. A few principles pay off
+immediately:
+
+- **Name and describe for a reader.** The model picks tools by their name and description.
+  `search_orders_by_customer` beats `query2`.
+- **Make arguments explicit and typed.** Enums, required fields, and clear descriptions cut
+  down on malformed calls.
+- **Return structured, compact results.** The result re-enters the window. Return what the
+  model needs to decide the next step — not a 5,000-token blob.
+- **Fail loudly and usefully.** A good error message (`"city not found, did you mean…"`) lets
+  the model recover on the next loop instead of hallucinating.
+
+<Callout type="warn" title="Too many tools">
+A model handed forty tools chooses worse than one handed five. Large toolsets both bloat the
+context budget and dilute the model's choice. Scope the toolset to the task.
+</Callout>
+
+## When does the loop stop?
+
+Three common stopping conditions:
+
+- The model decides it has enough and returns a final answer (no tool call).
+- It hits a **max-iterations** guard you set, so a confused agent can't loop forever.
+- A tool signals completion (e.g., a `submit` or `done` tool).
+
+Always set a max-iteration cap. An agent stuck calling the same tool in circles is a real
+failure mode, and the cap is your circuit breaker.
+
+You now have an agent that knows things (context) and does things (tools). The last question
+is the hardest: how do you know it's actually _working_? That's [evaluation and
+verification](/lessons/evaluation-and-verification).

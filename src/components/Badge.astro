@@ -1,0 +1,26 @@
+---
+interface Props {
+  variant?: 'default' | 'difficulty' | 'accent';
+  difficulty?: 'beginner' | 'intermediate' | 'advanced';
+  class?: string;
+}
+const { variant = 'default', difficulty, class: className = '' } = Astro.props;
+
+const base =
+  'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium';
+
+const difficultyStyles = {
+  beginner: 'border-success/30 bg-success/10 text-success',
+  intermediate: 'border-accent/30 bg-accent/10 text-accent',
+  advanced: 'border-violet/30 bg-violet/10 text-violet',
+};
+
+const variants = {
+  default: 'border-border bg-surface-2 text-fg-muted',
+  accent: 'border-accent/30 bg-accent/10 text-accent',
+  difficulty: difficulty ? difficultyStyles[difficulty] : difficultyStyles.intermediate,
+};
+---
+<span class:list={[base, variants[variant], 'font-mono', className]}>
+  <slot>{difficulty}</slot>
+</span>
