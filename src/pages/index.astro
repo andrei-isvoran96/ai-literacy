@@ -9,11 +9,7 @@ import { getSortedLessons, lessonHref, withBase } from '../lib/lessons';
 const lessons = await getSortedLessons();
 const first = lessons[0];
 
-const pillars = [
-  { k: 'Context', d: 'What the agent knows — and the budget it competes for.' },
-  { k: 'Tools', d: 'What the agent does — the model→tool→observe loop.' },
-  { k: 'Verification', d: 'How you know it actually worked.' },
-];
+const pillars = ['Context', 'Tools', 'Verification', 'Orchestration'];
 ---
 <BaseLayout>
   {/* ── Hero ───────────────────────────────────────────────── */}
@@ -27,9 +23,9 @@ const pillars = [
             Learn how AI agents <span class="text-gradient">actually work</span>.
           </h1>
           <p class="mt-6 max-w-xl text-lg text-fg-muted">
-            A hands-on guide for developers: context, tools, and verification — the
-            three skills behind agents you can trust. Every lesson ends with something
-            you can poke at.
+            A hands-on guide for developers: context, tools, verification, and
+            orchestration — the four skills behind agents you can trust. Every lesson
+            ends with something you can poke at.
           </p>
           <div class="mt-8 flex flex-wrap gap-3">
             {first && <Button href={lessonHref(first)}>Start learning →</Button>}
@@ -38,10 +34,10 @@ const pillars = [
 
           <ul class="mt-10 flex flex-wrap gap-x-6 gap-y-2 text-sm text-fg-subtle">
             {
-              pillars.map((p) => (
+              pillars.map((k) => (
                 <li class="flex items-center gap-2">
                   <span class="h-1.5 w-1.5 rounded-full bg-accent"></span>
-                  <span class="text-fg-muted">{p.k}</span>
+                  <span class="text-fg-muted">{k}</span>
                 </li>
               ))
             }
@@ -132,7 +128,7 @@ const pillars = [
             Ready to build agents you can trust?
           </h2>
           <p class="mx-auto mt-3 max-w-md text-fg-muted">
-            Three focused lessons. Real code, interactive widgets, no fluff.
+            Four focused lessons. Real code, interactive widgets, no fluff.
           </p>
           {
             first && (

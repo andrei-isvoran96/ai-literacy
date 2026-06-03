@@ -1,0 +1,150 @@
+---
+title: Parallel Agents & Worktrees
+description: One agent loop is reliable — now run several at once. Learn why a shared checkout collapses under parallel agents, and how git worktrees give each one an isolated workspace.
+order: 4
+slug: parallel-agents-and-worktrees
+difficulty: advanced
+tags: [worktrees, parallelism, orchestration, git]
+---
+
+import WorktreeLab from '../../components/islands/WorktreeLab.tsx';
+
+The first three lessons made a _single_ agent loop trustworthy: it knows the right things
+([context](/lessons/context-engineering)), does the right things
+([tools](/lessons/tool-use-and-the-agent-loop)), and can prove it
+([verification](/lessons/evaluation-and-verification)). The next bottleneck isn't the loop —
+it's that you have _one_ of them and a backlog of features. The obvious move is to run several
+agents at once. The non-obvious problem is that, by default, they all edit the same files.
+
+## The shared working tree is the bottleneck
+
+A git repository has one **working tree**: one set of files on disk, one index, one
+checked-out branch. That's invisible when you work alone — you _are_ the one editor. Point
+three agents at it and the assumption breaks in ways that are quiet and expensive:
+
+- Agent A's half-written, uncommitted edits are sitting in the tree when Agent B starts. B
+  reads them as the baseline and builds on code that doesn't exist yet anywhere.
+- One agent runs `git checkout` to switch branches and **wipes another agent's
+  work-in-progress** out from under it.
+- Tests run against a tree that's a blend of three features, so a green run proves nothing
+  about any single one.
+- Each agent's context fills with the others' churn — exactly the
+  [context decay](/lessons/context-engineering) you learned to avoid, now multiplied.
+
+So the only safe way to run them in one checkout is _one at a time_. Toggle the lab below to
+**One checkout** and press play: the agents serialize, because the tree can only belong to one
+of them at a moment. Then switch to **Worktrees** and watch the same work go wide.
+
+<WorktreeLab client:visible caption="Same three features, same agents. The only variable is whether each one gets its own working tree." />
+
+The wall-clock gap isn't the deep point — the _isolation_ is. Serialized work is slow; work
+that silently builds on another agent's uncommitted tree is **wrong**. Worktrees fix the
+correctness problem first, and the speed comes along for free.
+
+## `git worktree`: one repo, many working trees
+
+A worktree is a second (third, fourth) working directory attached to the **same repository**.
+They share one `.git` object store — all your history, branches, and objects — but each gets
+its own files on disk, its own index, and its own checked-out branch.
+
+```bash
+# From your main checkout: create a worktree on a fresh branch.
+git worktree add ../app-auth   -b feat/auth
+git worktree add ../app-search -b feat/search
+git worktree add ../app-export -b feat/export
+
+git worktree list
+# /home/you/app          abc1234 [main]
+# /home/you/app-auth     abc1234 [feat/auth]
+# /home/you/app-search   abc1234 [feat/search]
+# /home/you/app-export   abc1234 [feat/export]
+```
+
+Each path is a real, independent checkout. Editing files in `../app-auth` does nothing to the
+tree in `../app-search`. There's no copy of the database of objects — worktrees are cheap, which
+is what makes spinning up one per task practical rather than precious.
+
+<Callout type="note">
+A branch can only be checked out in one worktree at a time. That's a feature: git is enforcing
+the same one-editor invariant per branch that you're enforcing per agent. One worktree, one
+branch, one agent — a clean three-way mapping.
+</Callout>
+
+## One agent per worktree
+
+Now the parallelism is trivial, because isolation does the hard part. Open a separate Claude
+session **in each worktree directory** and give each one a single, self-contained feature:
+
+```bash
+cd ../app-auth   && claude   # "implement the OAuth login flow on this branch"
+cd ../app-search && claude   # "add full-text search over the catalog"
+cd ../app-export && claude   # "add CSV export to the reports page"
+```
+
+Each agent sees only its own files and its own task. Its context window
+([lesson 1](/lessons/context-engineering)) stays focused on one feature instead of three
+interleaved ones, so it reasons better and its verification means something — the tests it runs
+are against _its_ tree alone. This is the same instinct as a subagent swarm: independent
+surfaces get independent contexts, and nothing leaks between them.
+
+<Callout type="tip">
+Keep one worktree — usually `main` — as your **integration tree** that no agent works in. It's
+where you review finished branches and run the full suite before merging. A clean reference point
+makes it obvious what each feature actually changed.
+</Callout>
+
+## Keeping main green
+
+Isolation during the work is only half the job; the branches still have to come back together.
+The discipline that keeps integration boring:
+
+- **Review each branch's diff on its own.** `git diff main...feat/auth` is a complete,
+  legible story of one feature. That's the artifact you actually verify — not a pile of mixed
+  changes.
+- **Merge independent surfaces first.** Features that touch disjoint files merge without
+  conflict in any order. Get those in, then deal with the ones that overlap.
+- **Resolve conflicts at the merge, not during the work.** The whole point of the isolation
+  was to _defer_ integration. Let the branches diverge freely; reconcile once, deliberately,
+  in the integration tree.
+- **Prune as you finish.** A merged worktree is clutter. Clean it up so the next batch starts
+  from a clear board:
+
+```bash
+git worktree remove ../app-auth     # after feat/auth is merged
+git worktree prune                  # tidy up stale metadata
+git branch -d feat/auth
+```
+
+## When _not_ to parallelize
+
+Parallelism has a cost, and pretending it doesn't is how you trade one bottleneck for a worse
+one. Run agents serially when:
+
+- **The features touch the same files.** Two agents editing `auth.ts` on separate branches
+  don't collide _during_ the work — but you've just deferred a guaranteed merge conflict, and
+  resolving it by hand can cost more than the parallelism saved.
+- **There's a real dependency chain.** If feature B builds on feature A's API, B's agent will
+  guess at an interface that doesn't exist yet. Ship A, then start B on top of it.
+- **Review is the actual bottleneck.** Five branches land in an hour; you can only carefully
+  review one at a time. Parallel _generation_ with serial _verification_ just moves the queue.
+  Match your fan-out to your review bandwidth.
+
+<Callout type="warn" title="Velocity is not value">
+Three branches in flight feels like progress. It isn't, until each one is reviewed, verified as
+a user, and merged. An unreviewed parallel branch is unmerged work with a conflict waiting
+inside it — the same trap as a green test on a broken feature, just scaled by three.
+</Callout>
+
+## Rules of thumb
+
+- **Isolate first, parallelize second.** A worktree per agent buys correctness; the speed-up
+  is a side effect. Never run agents in a shared tree to "save the setup."
+- **One worktree, one branch, one agent, one feature.** Keep the mapping clean and the rest
+  follows.
+- **Keep an integration tree no agent touches.** Review and run the full suite there.
+- **Scope fan-out to review bandwidth.** Generating faster than you can verify just relocates
+  the backlog.
+
+That's the field guide closed: an agent that **knows**, **does**, and **proves** — and now a
+way to run many of them at once without their work bleeding together. The loop made one agent
+trustworthy; isolation is what lets you trust a fleet.
