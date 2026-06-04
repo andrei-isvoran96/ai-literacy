@@ -25,7 +25,21 @@ export async function getSortedLessons(): Promise<Lesson[]> {
 }
 
 export function lessonHref(lesson: Lesson): string {
-  return withBase(`/lessons/${lesson.data.slug ?? lesson.id}`);
+  return withBase(`/lessons/${lessonSlug(lesson)}`);
+}
+
+/** URL slug for a lesson — explicit frontmatter `slug`, else the entry id. */
+export function lessonSlug(lesson: Lesson): string {
+  return lesson.data.slug ?? lesson.id;
+}
+
+/**
+ * Root-absolute path to a lesson's generated Open Graph card. The matching
+ * PNG is produced at build time by `src/pages/og/[...route].png.ts`, keyed by
+ * the same slug — so the meta tag and the generated image always agree.
+ */
+export function lessonOgPath(lesson: Lesson): string {
+  return withBase(`/og/${lessonSlug(lesson)}.png`);
 }
 
 /** Two-digit lesson number derived from `order` (e.g. 1 → "01"). */

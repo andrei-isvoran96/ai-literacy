@@ -5,7 +5,7 @@ import Container from '../components/Container.astro';
 import ReadingMeta from '../components/ReadingMeta.astro';
 import TableOfContents from '../components/TableOfContents.astro';
 import PrevNext from '../components/PrevNext.astro';
-import { lessonNumber, type Lesson } from '../lib/lessons';
+import { lessonNumber, lessonOgPath, type Lesson } from '../lib/lessons';
 
 interface Props {
   lesson: Lesson;
@@ -17,7 +17,11 @@ interface Props {
 const { lesson, headings, prev, next, minutes } = Astro.props;
 const num = lessonNumber(lesson);
 ---
-<BaseLayout title={lesson.data.title} description={lesson.data.description}>
+<BaseLayout
+  title={lesson.data.title}
+  description={lesson.data.description}
+  image={lessonOgPath(lesson)}
+>
   <Container size="wide">
     <div class="py-12 lg:grid lg:grid-cols-[minmax(0,1fr)_15rem] lg:gap-12">
       <article class="min-w-0 max-w-3xl">
