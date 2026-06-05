@@ -1,0 +1,151 @@
+---
+title: Getting Unstuck
+description: "A stuck agent has two bad instincts — spin faster on a wrong hunch, or stop and ask you. Both waste your attention. Learn the third move: fan out parallel subagents to test hypotheses at once, and reserve questions for the few decisions only you can make."
+order: 5
+slug: getting-unstuck
+difficulty: advanced
+tags: [subagents, parallelism, debugging, autonomy, orchestration]
+---
+
+import UnstuckLab from '../../components/islands/UnstuckLab.tsx';
+
+The last lesson ran many agents across [isolated worktrees](/lessons/parallel-agents-and-worktrees)
+to clear a backlog faster. This one is about a different kind of parallelism — not "more
+features at once," but **getting one agent unstuck when its mental model is wrong.** A stuck
+agent has two default instincts, and both quietly tax the one resource you can't mint more of:
+your attention.
+
+## The two bad instincts
+
+You ask an agent to fix a bug. It forms a theory, tries a patch, the bug persists. Now it's
+stuck — and left to its defaults it does one of two things:
+
+- **It spins faster.** Same hunch, slightly different patch, re-run, fail, repeat. This is
+  "going in circles": the loop runs hot but the underlying mental model never gets
+  re-examined, so every iteration is a more elaborate version of the same wrong guess.
+- **It stops and asks you.** "I tried X and it didn't work — should I try Y instead?" This
+  _feels_ safe and deferential. But it hands a technical question — one the agent could answer
+  by investigating — back to you as a context switch. You become the debugger.
+
+Both are failures, and they share a root: the agent treated a wrong guess as the only guess,
+then either doubled down on it or escalated it. The fix isn't a better single guess. It's to
+stop betting on one.
+
+## The third move: fan out across hypotheses
+
+When you're stuck, the honest statement is "I don't know which of several things is wrong."
+That's not a reason to ask the user — it's a description of a search problem, and search
+problems parallelize. Instead of investigating one hypothesis, committing, and backtracking,
+spawn **one subagent per hypothesis** and let them run at once. Each gets its own
+[fresh context window](/lessons/context-engineering), unpolluted by the dead ends the others
+are chasing, and reports back: confirmed, ruled out, or here's the evidence.
+
+Toggle the lab to **Retry serially** and play it: the agent works the hypotheses one at a time
+and pays in full for every wrong probe before it reaches the real cause. Then switch to **Fan
+out** — the same hypotheses, investigated simultaneously, and the root cause surfaces at the
+cost of the _right_ probe alone.
+
+<UnstuckLab client:visible caption="One bug, four plausible causes, only one real. Serial retrying pays for every wrong guess in sequence; fanning out pays for the right one." />
+
+The speed-up is the obvious part. The deeper win is the same one worktrees bought:
+**independence.** A serial loop carries its failed theories forward as context — each retry
+reasons against a window cluttered with what already didn't work. Four parallel subagents share
+nothing. The one chasing the wrong theory can't drag the others into its hole, and the one that
+finds the answer found it on a clean desk.
+
+<Callout type="note">
+This is the [investigate-to-root](/lessons/evaluation-and-verification) reflex made parallel.
+A surface error is a starting point, not an ending point — "the API returned 400" means _ask
+why_, not _give up_. Fanning out is how you ask "why?" four ways at once instead of serially
+guessing.
+</Callout>
+
+## Reproduce before you fan out
+
+Parallelism multiplies whatever you point it at — including a misdiagnosis. Four subagents
+confidently exploring four theories about a bug you haven't actually reproduced is just four
+times the wasted work. So the hypotheses have to be grounded in a real failure first:
+
+1. **Reproduce it.** Run the failing command, replay the exact input, query the real database.
+   Capture the actual output — not your summary of it.
+2. **Locate it.** Name the failing line, `file:line`, from that reproduction.
+3. **Then enumerate hypotheses** worth a subagent each — and fan out.
+
+If the user already pasted a stack trace or a log, that _is_ your reproduction; work from it
+directly. Skipping this step is how a fan-out becomes an expensive, parallel way to be wrong.
+
+<Callout type="warn" title="Don't fan out a guess">
+A subagent swarm is a force multiplier, and a force multiplier on a bad input is worse than
+the bad input alone. If you can't reproduce the failure, the move isn't to spawn four agents —
+it's to reproduce the failure.
+</Callout>
+
+## The asking question: act, don't escalate
+
+The second bad instinct — stopping to ask — deserves its own rule, because the bias is so
+strong and so costly. Every "should I proceed?" is a context switch you've pushed onto the
+user. When the next step is obvious from context, asking isn't caution; it's the failure mode.
+The default stance is **autonomous, not reactive.** If a wrong guess is cheap to reverse, take
+the guess and move — you'll learn more from the result than from the question.
+
+Reserve a question for the genuinely narrow set where you _can't_ responsibly proceed:
+
+- **The decision is ambiguous _and_ the wrong choice is expensive to undo.** Both halves
+  required. Reversible-but-ambiguous? Pick the sane default and note it. Irreversible-but-obvious?
+  Just do it. Only the intersection earns an interruption.
+- **A hard-to-reverse action is about to fire** — production data writes, a force-push to a
+  shared branch, deleting work that isn't yours. These confirm by default. (Note that "fire a
+  billed API," "deploy," and "open a PR" are usually _not_ on this list — if the work plainly
+  calls for them, they're in scope.)
+- **You're blocked on information only the user has** — a missing credential, a product
+  decision with no derivable answer, a preference you can't infer from the code or the task.
+
+Notice what's absent: "which hypothesis is right," "should I try Y next," "is this approach
+okay." Those are technical questions with technical answers you can reach by investigating —
+exactly the work fanning out is _for_. Routing them to the user is how a debugging session
+becomes a Q&A session.
+
+<Callout type="tip">
+The two halves reinforce each other. The reason you _can_ skip most questions is that fanning
+out lets you answer them yourself — cheaply, in parallel, on a clean context. Autonomy isn't
+recklessness; it's having a fast, reliable way to resolve your own uncertainty before it
+becomes someone else's interruption.
+</Callout>
+
+## When _not_ to fan out
+
+Like worktrees, parallelism here has a cost, and reaching for it reflexively trades one failure
+mode for another:
+
+- **The hypothesis space is one.** If reproduction points at a single obvious cause, just fix
+  it. Spawning four agents to confirm what one line of investigation already settled is
+  ceremony, not rigor.
+- **The hypotheses aren't independent.** If theory B only makes sense once theory A is ruled
+  out, they're a sequence, not a fan-out. Parallelizing a dependency chain just means three
+  agents waiting on a fact they don't have yet.
+- **The real blocker is information, not analysis.** No amount of parallel investigation
+  conjures a missing API key or an undecided product call. That's the narrow case where you
+  _do_ stop and ask — fanning out first just burns four contexts before you admit it.
+
+<Callout type="warn" title="A swarm is not a substitute for a model">
+If two honest attempts have failed, stop and rethink from the top rather than throwing more
+agents at a mental model that's already wrong. Fan-out explores hypotheses faster; it does not
+fix a wrong _framing_ of the problem. When you're going in circles, the escape is a different
+question, not more parallel copies of the same one.
+</Callout>
+
+## Rules of thumb
+
+- **Stuck means "I don't know which," not "ask the user."** Treat it as a search problem and
+  fan out — one subagent per hypothesis, each on a clean context.
+- **Reproduce before you parallelize.** A fan-out multiplies whatever it's pointed at, so point
+  it at a real, located failure — never a guess.
+- **Act on reversible decisions; ask only on the irreversible-and-ambiguous.** Both halves
+  required, or the default is to proceed and note what you assumed.
+- **Two failed attempts means rethink, not respawn.** More agents won't fix a wrong framing of
+  the problem.
+
+The loop made one agent trustworthy; worktrees let you run a fleet of them; and now you have
+the move for when one of them hits a wall — not spin, not escalate, but split the unknown into
+parallel pieces and resolve it yourself. The agent that **knows**, **does**, and **proves** is
+also the agent that **gets itself unstuck** without making its uncertainty your problem.
